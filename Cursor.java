@@ -27,8 +27,21 @@ public class Cursor {
     //curX is the right side of the current character
 
     public Cursor(){
-        textBox = new Rectangle(1, 0);
-
+        textBox = new Rectangle(2, 20);
+        textBox.setX(5);
+        textBox.setY(100 -16);
+    }
+    public int getX(){
+        return (int)textBox.getX();
+    }
+    public int getY(){
+        return (int)textBox.getY();
+    }
+    public void setx(int x){
+        this.textBox.setX(x);
+    }
+    public void sety(int y){
+        this.textBox.setY(y);
     }
 
     private class RectangleBlinkEventHandler implements EventHandler<ActionEvent> {
