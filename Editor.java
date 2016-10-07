@@ -36,9 +36,10 @@ public class Editor extends Application{
     public Cursor cur = new Cursor();;
     private int line_length;
     protected FastLinkedList buffer = new FastLinkedList();
-    public int positionX = 5;
+    public int positionX = 0;
     public int positionY = 100;
-    public int textLength = 5;
+    public int textLength = 0;// the total length
+    public int curLength = 0;//from head to the cursor
     //private Text displayText = new Text(STARTING_TEXT_POSITION_X, STARTING_TEXT_POSITION_Y, "");
     private String fontName = "Verdana";
     private int fontSize = 20;
@@ -85,10 +86,11 @@ public class Editor extends Application{
         cur.makeColorChange();
 
         //bring in keyEventHandler
-        EventHandler<KeyEvent> keyEventHandler = new KeyEventHandler(root, windowWidth, windowHeight, this);
+        EventHandler<KeyEvent> keyEventHandler = new KeyEventHandler(root, this);
+        EventHandler<MouseEvent>  mouseEventHandler = new MouseEventHandler(root, this);
         scene.setOnKeyTyped(keyEventHandler);
         scene.setOnKeyPressed(keyEventHandler);
-
+        scene.setOnMouseClicked(mouseEventHandler);
         primaryStage.setScene(scene);
         primaryStage.show();
     }

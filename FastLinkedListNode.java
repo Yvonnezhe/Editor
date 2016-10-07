@@ -7,6 +7,7 @@ import javafx.scene.text.Text;
  */
 public class FastLinkedListNode {
     private Text item;
+    private int charWidth;
     private FastLinkedListNode prev;
     private FastLinkedListNode next;
 
@@ -14,12 +15,9 @@ public class FastLinkedListNode {
         item = null;
         prev = null;
         next = null;
+        charWidth = 0;
     }
-    public FastLinkedListNode(Text item, FastLinkedListNode prev, FastLinkedListNode next) {
-        this.item = item;
-        this.prev = prev;
-        this.next = next;
-    }
+
     public FastLinkedListNode(Text text) {item = text;}
     public FastLinkedListNode getNext() {return next;}
     public FastLinkedListNode getPrev() {return prev;}
@@ -28,10 +26,12 @@ public class FastLinkedListNode {
         return (int) Math.round(item.getX());
     }
     public int getYPos() {return (int) Math.round(item.getY());}
+    public int getCharWidth() {return charWidth;}
 
     public void setPrev(FastLinkedListNode prev) {this.prev = prev;}
     public void setNext(FastLinkedListNode next) {this.next = next;}
     public void setItem(Text item) {this.item = item;}
     public void updateXPos(int newX) {item.setX(newX);}
     public void updateYPos(int newY) {item.setY(newY);}
+    public void setCharWidth(int charWidth) {this.charWidth = charWidth;}
 }

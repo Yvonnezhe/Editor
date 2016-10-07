@@ -31,25 +31,28 @@ public class KeyEventHandler implements EventHandler<KeyEvent> {
     private static final int STARTING_TEXT_POSITION_Y = 250;
     private static final int STARTING_FONT_SIZE = 20;
 
-    /**
-     * The Text to display on the screen.
-     */
-    private Text displayText = new Text(STARTING_TEXT_POSITION_X, STARTING_TEXT_POSITION_Y, "");
     private int fontSize = STARTING_FONT_SIZE;
-
     private String fontName = "Verdana";
 
-    //10.2
+    // make a connection with editor to get the editor curLength to change the position of cursor
+    // and get the textLength to display every Text
     public Editor editor;
     Group root;
     static int lineLength = 450;
     int charHeight = 0;
-    KeyEventHandler(final Group root, int windowWidth, int windowHeight, Editor editor) {
+    /*
+     isLast == true means input in the end of the file
+     the curLength should be the same with textLength
+     isLast == false means input in the middle of the file
+     so the curLength just add the currentNode's charWidth while textLength records the total length
+    */
+    boolean isLast;
+    KeyEventHandler(final Group root, Editor editor) {
         this.root = root;
         this.editor = editor;
         textCenterX = 15;
         textCenterY = 100;
-
+        isLast = true;
         // Initialize some empty text and add it to root so that it will be displayed.
         //displayText = new Text(textCenterX, textCenterY, "");
         // Always set the text origin to be VPos.TOP! Setting the origin to be VPos.TOP means
@@ -57,10 +60,12 @@ public class KeyEventHandler implements EventHandler<KeyEvent> {
         // highest position across all letters (for example, the top of a letter like "I", as
         // opposed to the top of a letter like "e"), which makes calculating positions much
         // simpler!
-        //displayText.setTextOrigin(VPos.TOP);
-        //displayText.setFont(Font.font(fontName, fontSize));
-        //root.getChildren().add(displayText);
     }
+    /*
+      this is the method to remove the node after cursor before add or delete
+      when the action is add, should remove from the next of current node
+      if the action is delete, should remove from the current node
+     */
     public void removeCurrent(int code){
         //code == 1 add remove from the next of current node
         //code == 2 delete remove from current node
@@ -70,17 +75,21 @@ public class KeyEventHandler implements EventHandler<KeyEvent> {
             removetemp = editor.buffer.getCurrentNode().getNext();
         if(code == 2)
             removetemp = editor.buffer.getCurrentNode();
+
         while (removetemp != null) {
             Text displayText = removetemp.getItem();
+System.out.println("remove   "+displayText.getText());
             root.getChildren().remove(displayText);
             int charWidth = (int) Math.round(displayText.getLayoutBounds().getWidth());
             charHeight = (int) Math.round(displayText.getLayoutBounds().getHeight());
             editor.textLength -= charWidth;
-            editor.curLength -= charWidth;
+if(code == 2 && removetemp == editor.buffer.getCurrentNode())
+    editor.curLength -= charWidth;
             editor.positionX = (editor.textLength) % lineLength;
             editor.positionY = charHeight * ((editor.textLength) / lineLength) + 100;
-            editor.cur.setx(editor.positionX);
-            editor.cur.sety(editor.positionY - charHeight * 2 / 3);
+
+            editor.cur.setx((editor.curLength) % lineLength);
+            editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
             removetemp = removetemp.getNext();
         }
     }
@@ -95,158 +104,166 @@ public class KeyEventHandler implements EventHandler<KeyEvent> {
                 // Ignore control keys, which have zero length, as well as the backspace
                 // key, which is represented as a character of value = 8 on Windows.
                 //displayText.setText(characterTyped);
-//                int end = root.getChildren().size();
-//                FastLinkedListNode removetemp = editor.buffer.getCurrentNode();
-//                while (removetemp != null) {
-//                    Text displayText = removetemp.getItem();
-//                    root.getChildren().remove(displayText);
-//                    int charWidth = (int) Math.round(displayText.getLayoutBounds().getWidth());
-//                    charHeight = (int) Math.round(displayText.getLayoutBounds().getHeight());
-//                    editor.textLength -= charWidth;
-//                    editor.curLength -= charWidth;
-//                    editor.positionX = (editor.textLength) % lineLength;
-//                    editor.positionY = charHeight * ((editor.textLength) / lineLength) + 100;
-//                    editor.cur.setx(editor.positionX);
-//                    editor.cur.sety(editor.positionY - charHeight * 2 / 3);
-//                    removetemp = removetemp.getNext();
-//                }
 
+                //add a Text on the screen , first remove the node after the cursor
+                //then call the add method of FastLinkedList to change the current node and add the new node;
+                //at last from the current node, add every node on the screen
                 removeCurrent(1);
                 editor.add(characterTyped);
                 FastLinkedListNode temp = editor.buffer.getCurrentNode();
-                //System.out.println(temp.getItem());
+
                 while (temp != null) {
                     Text displayText = temp.getItem();
+System.out.println("add   "+ displayText.getText());
                     displayText.setFont(Font.font(fontName, fontSize));
+
+                    //with positionX and positionY record the display position
+                    //update the position of where to display the new node
                     displayText.setX(editor.positionX);
                     displayText.setY(editor.positionY);
+
+                    //update the position of the node
                     temp.updateXPos(editor.positionX);
                     temp.updateYPos(editor.positionY);
-                    //displayText.setText(displayText.getText()+temp.getItem().getText());
+
                     root.getChildren().add(displayText);
+
                     int charWidth = (int) Math.round(temp.getItem().getLayoutBounds().getWidth());
                     charHeight = (int) Math.round(temp.getItem().getLayoutBounds().getHeight());
-                    editor.textLength += charWidth;
-                    editor.curLength += charWidth;
+                    if(isLast == true){
+                        editor.textLength += charWidth;
+                        editor.curLength += charWidth;
+                    }
+                    else{
+                        editor.textLength += charWidth;
+                        if(temp == editor.buffer.getCurrentNode())
+                            editor.curLength += charWidth;
+                    }
+                    temp.setCharWidth(charWidth);
+
+//editor.updateXY(lineLength){
+//editor.positionX = (editor.textLength) % lineLength;
+//editor.positionY = charHeight * ((editor.textLength) / lineLength) + 100;
+//}
+                    //using textLength to compute the display position
                     editor.positionX = (editor.textLength) % lineLength;
                     editor.positionY = charHeight * ((editor.textLength) / lineLength) + 100;
-                    editor.cur.setx(editor.positionX);
-                    editor.cur.sety(editor.positionY - charHeight * 2 / 3);
+//cur.updateXY(curlength,lineLength,charHeight){
+//editor.cur.setx(curLength % lineLength);
+//editor.cur.sety(charHeight * (curLength / lineLength) + 100 - charHeight * 2 / 3);
+//}
+                    //using the curLength to compute the cursor position
+                    editor.cur.setx((editor.curLength) % lineLength);
+                    editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
+
                     temp = temp.getNext();
                 }
-
                 keyEvent.consume();
             } else if (characterTyped.charAt(0) == 8) {
-//                int end = root.getChildren().size();
-//                FastLinkedListNode removetemp = editor.buffer.getCurrentNode();
-//                while (removetemp != null) {
-//                    Text displayText = removetemp.getItem();
-//                    root.getChildren().remove(displayText);
-//                    int charWidth = (int) Math.round(displayText.getLayoutBounds().getWidth());
-//                    charHeight = (int) Math.round(displayText.getLayoutBounds().getHeight());
-//                    editor.textLength -= charWidth;
-//                    editor.curLength -= charWidth;
-//                    editor.positionX = (editor.textLength) % lineLength;
-//                    editor.positionY = charHeight * ((editor.textLength) / lineLength) + 100;
-//                    editor.cur.setx(editor.positionX);
-//                    editor.cur.sety(editor.positionY - charHeight * 2 / 3);
-//                    removetemp = removetemp.getNext();
-//                }
+
+                //FastLinkedListNode curdelete = editor.buffer.getCurrentNode();
+                //int charWidthDelete = (int) Math.round(curdelete.getItem().getLayoutBounds().getWidth());
+                //editor.curLength -= charWidthDelete;
                 removeCurrent(2);
-
                 editor.delete();
+                System.out.println();
 
-
-                FastLinkedListNode temp = editor.buffer.getCurrentNode();
-                while (temp.getNext() != null) {
-                    Text displayText = temp.getNext().getItem();
+                FastLinkedListNode temp = editor.buffer.getCurrentNode().getNext();
+                while (temp!= null) {
+                    Text displayText = temp.getItem();
+System.out.println("add again   "+displayText.getText());
                     displayText.setFont(Font.font(fontName, fontSize));
+
                     displayText.setX(editor.positionX);
                     displayText.setY(editor.positionY);
+
                     temp.updateXPos(editor.positionX);
                     temp.updateYPos(editor.positionY);
+
                     int charWidth = (int) Math.round(displayText.getLayoutBounds().getWidth());
-                    //charHeight = (int) Math.round(displayText.getLayoutBounds().getHeight());
                     editor.textLength += charWidth;
-                    editor.curLength += charWidth;
+
                     editor.positionX = (editor.textLength) % lineLength;
                     editor.positionY = charHeight * ((editor.textLength) / lineLength) + 100;
-                    editor.cur.setx(editor.positionX);
-                    editor.cur.sety(editor.positionY - charHeight * 2 / 3);
+
+                    editor.cur.setx((editor.curLength) % lineLength);
+                    editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
                     root.getChildren().add(displayText);
                     temp = temp.getNext();
                 }
                 keyEvent.consume();
             }
-
 
         } else if (keyEvent.getEventType() == KeyEvent.KEY_PRESSED) {
             // Arrow keys should be processed using the KEY_PRESSED event, because KEY_PRESSED
             // events have a code that we can check (KEY_TYPED events don't have an associated
             // KeyCode).
+
+
             KeyCode code = keyEvent.getCode();
             if (code == KeyCode.UP) {
                 if (editor.curLength > lineLength) {
-                    editor.curLength -= lineLength;
-                    editor.buffer.updateCurXY(editor.positionX, editor.positionY - charHeight);
-
-
-                    //////get the current node and the position of the cursor from FastLinkedList
-                    //editor.positionY -= charHeight;
-                    // editor.cur.setx(editor.positionX);
-                    //editor.cur.sety(editor.positionY - charHeight * 2 / 3);
-
+                    isLast = false;
+                    int changeLength = editor.buffer.findCurLenDiffForUpByXY(editor.cur.getX(),
+                            editor.cur.getY() + charHeight * 2 / 3 - charHeight);
+                    editor.curLength -= changeLength;
+ System.out.print("changeLength   "+changeLength);
+                    editor.cur.setx((editor.curLength) % lineLength);
+                    editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
                 }
-                //fontSize += 5;
-                //displayText.setFont(Font.font(fontName, fontSize));
             } else if (code == KeyCode.DOWN) {
-                //fontSize = Math.max(0, fontSize - 5);
-                //displayText.setFont(Font.font(fontName, fontSize));
                 if (editor.textLength - editor.curLength > lineLength) {
-                    editor.curLength += lineLength;
-                    editor.buffer.updateCurXY(editor.positionX, editor.positionY + charHeight);
-
-                    //////get the current node and the position of the cursor from FastLinkedList
-                    //editor.positionY += charHeight;
-                    // editor.cur.setx(editor.positionX);
-                    // editor.cur.sety(editor.positionY - charHeight * 2 / 3);
-
+                    int changeLength = editor.buffer.findCurLenForDownByXY(editor.cur.getX(),
+                            editor.cur.getY() + charHeight * 2 / 3 + charHeight);
+                    System.out.print("change++down"+changeLength);
+                    editor.curLength += changeLength;
+                    if(editor.curLength == editor.textLength)
+                        isLast = true;
+                    editor.cur.setx((editor.curLength) % lineLength);
+                    editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
                 }
                 else{
                     editor.curLength = editor.textLength;
-                    editor.buffer.updateCurXY(editor.positionX, editor.positionY);
+                    isLast = true;
+
+                    //editor.buffer.updateCurXY(editor.positionX, editor.positionY);
                     editor.positionX = (editor.textLength) % lineLength;
                     editor.positionY = charHeight * ((editor.textLength) / lineLength) + 100;
-                    editor.cur.setx(editor.positionX);
-                    editor.cur.sety(editor.positionY - charHeight * 2 / 3);
-
+                    int changeLength = editor.buffer.findCurLenForDownByXY(editor.positionX,
+                            editor.positionY);
+                    editor.cur.setx((editor.curLength) % lineLength);
+                    editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
                 }
             }
             if (code == KeyCode.RIGHT) {
-                if (editor.curLength < lineLength) {
-                    FastLinkedListNode temp = editor.buffer.getCurrentNode();
-                    temp = temp.getNext();
+                if (editor.curLength < editor.textLength) {
+                    FastLinkedListNode temp = editor.buffer.getCurrentNode().getNext();
                     int charWidth = (int) Math.round(temp.getItem().getLayoutBounds().getWidth());
-                    editor.buffer.updateCurXY(editor.positionX + charWidth, editor.positionY);
-                    //////get the current node and the position of the cursor from FastLinkedList
-                    //editor.positionX += charWidth;
-                    //editor.cur.setx(editor.positionX);
-                    // editor.cur.sety(editor.positionY - charHeight * 2 / 3);
+                    editor.curLength += charWidth;
+                    if(editor.curLength == editor.textLength) isLast = true;
+                    //editor.positionX = temp.getXPos();
+                    //editor.positionY = temp.getYPos();
+                    editor.cur.setx((editor.curLength) % lineLength);
+                    editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
 
+
+                    editor.buffer.updateCurrentNode(temp);
                 }
             }
             if (code == KeyCode.LEFT) {
                 if (editor.curLength > 0) {
                     FastLinkedListNode temp = editor.buffer.getCurrentNode();
-                    temp = temp.getPrev();
                     int charWidth = (int) Math.round(temp.getItem().getLayoutBounds().getWidth());
-                    editor.buffer.updateCurXY(editor.positionX - charWidth, editor.positionY);
+                    editor.curLength -= charWidth;
+                    isLast = false;
 
-                    //////get the current node and the position of the cursor from FastLinkedList
-                    //editor.positionX -= charWidth;
-                    //editor.cur.setx(editor.positionX);
-                    // editor.cur.sety(editor.positionY - charHeight * 2 / 3);
+                    //editor.positionX = temp.getXPos();
+                    // editor.positionY = temp.getYPos();
+                    editor.cur.setx((editor.curLength) % lineLength);
+                    editor.cur.sety(charHeight * ((editor.curLength) / lineLength) + 100 - charHeight * 2 / 3);
 
+                    temp = temp.getPrev();
+                    editor.buffer.updateCurrentNode(temp);
                 }
             }
         }
